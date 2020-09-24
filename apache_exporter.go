@@ -43,6 +43,12 @@ type Exporter struct {
 	accessesTotal  *prometheus.Desc
 	kBytesTotal    *prometheus.Desc
 	durationTotal  *prometheus.Desc
+	reqPerSec      *prometheus.Desc
+	bytesPerReq    *prometheus.Desc
+	bytesPerSec    *prometheus.Desc
+	connsWriting   *prometheus.Desc
+	connsKeepAlive *prometheus.Desc
+	connsClosing   *prometheus.Desc
 	cpuload        prometheus.Gauge
 	uptime         *prometheus.Desc
 	workers        *prometheus.GaugeVec
@@ -78,6 +84,36 @@ func NewExporter(uri string) *Exporter {
 		durationTotal: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "duration_total"),
 			"Total duration of all registered requests",
+			nil,
+			nil),
+		bytesPerReq: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "bytes_per_req"),
+			"Bytes per request (*)",
+			nil,
+			nil),
+		bytesPerSec: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "bytes_per_sec"),
+			"Bytes per second (*)",
+			nil,
+			nil),
+		reqPerSec: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "req_per_sec"),
+			"Requests per second (*)",
+			nil,
+			nil),
+		connsWriting: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "conns_async_writing"),
+			"Writing connections (*)",
+			nil,
+			nil),
+		connsKeepAlive: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "conns_async_keepalive"),
+			"KeepAlive connections (*)",
+			nil,
+			nil),
+		connsClosing: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "conns_async_closing"),
+			"Closing connections (*)",
 			nil,
 			nil),
 		cpuload: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -241,6 +277,48 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 
 			ch <- prometheus.MustNewConstMetric(e.apacheVersion, prometheus.CounterValue, val, v)
 		case key == "Total kBytes":
+			val, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return err
+			}
+
+			ch <- prometheus.MustNewConstMetric(e.reqPerSec, prometheus.CounterValue, val)
+		case key == "ReqPerSec":
+			val, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return err
+			}
+
+			ch <- prometheus.MustNewConstMetric(e.bytesPerSec, prometheus.CounterValue, val)
+		case key == "BytesPerSec":
+			val, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return err
+			}
+
+			ch <- prometheus.MustNewConstMetric(e.bytesPerReq, prometheus.CounterValue, val)
+		case key == "BytesPerReq":
+			val, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return err
+			}
+
+			ch <- prometheus.MustNewConstMetric(e.connsWriting, prometheus.CounterValue, val)
+		case key == "ConnsAsyncWriting":
+			val, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return err
+			}
+
+			ch <- prometheus.MustNewConstMetric(e.connsKeepAlive, prometheus.CounterValue, val)
+		case key == "ConnsAsyncKeepAlive":
+			val, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return err
+			}
+
+			ch <- prometheus.MustNewConstMetric(e.connsClosing, prometheus.CounterValue, val)
+		case key == "ConnsAsyncClosing":
 			val, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				return err
